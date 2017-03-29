@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+
+	@font-face{
+		font-family: "ComicNeue";
+		src: url("ComicNeue-Regular.ttf");
+	}
+
+	body {
+		margin: 0;
+		font-family: "Comic Sans MS", "ComicNeue";
+	}
+
+	#gamecontainer {
+		width: 800px;
+		height: 533px;
+		position: relative;
+	}
+
+	#subtitles, #subtitles2 {
+		text-align: center;
+		font-size: 20px;
+		font-style: italic;
+		position: absolute;
+		width: 800px;
+		top: 460px;
+		display: none;
+	}
+
+	#subtitles2 {
+		top: 430px;
+		font-size: 25px;
+		text-shadow: -2px 0 #FFF, 0 2px #FFF, 2px 0 #FFF, 0 -2px #FFF; /* Add a stroke around text */
+		z-index: 1001;
+	}
+
+	#subtitles2:hover {
+		cursor: default;
+	}
+
+	#instructions {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 720px;
+		height: 453px;
+		background-color: #FFF;
+		padding: 40px;
+		text-align: center;
+		z-index: 10000;
+		display: none;
+		cursor: pointer;
+	}
+
+	.unselectable {
+		/* Make unselectable */
+		-webkit-touch-callout: none;
+		-webkit-user-select: none;
+		-khtml-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	.menubutton {
+		font-size: 40px;
+		text-align: center;
+		cursor: pointer; cursor: hand;
+	}
+
+	.gamebutton {
+		font-size: 20px;
+		cursor: pointer;
+		position: absolute;
+		top: 430px;
+		z-index: 1000;
+	}
+
+	.gamebutton:hover {
+		text-shadow: 0px 0px 1px;
+	}
+
+	#button-moreclothes {
+		position: absolute;
+		left: 450px;
+	}
+
+	#button-ready {
+		position: absolute;
+		left: 690px;
+	}
+
+	.menubutton:hover {
+		text-shadow: 0px 0px 1px;
+	}
+
+	#titlescreen-elements {
+		position: absolute;
+		width: 470px;
+		top: 200px;
+		right: 0;
+		display: none;
+	}
+
+	#winscreen-elements {
+		position: absolute;
+		width: 800px;
+		top: 533px;
+		left: 0;
+		top: 0;
+		display: none;
+	}
+
+	#winscreen-elements-menu, #winscreen-elements-info {
+		position: absolute;
+		width: 470px;
+		top: 270px;
+		right: 0;
+		text-align: center;
+	}
+
+	#winscreen-elements-info {
+		cursor: pointer;
+	}
+
+	#losescreen-elements {
+		position: absolute;
+		width: 470px;
+		top: 350px;
+		right: 0;
+		display: none;	
+	}
+
+	#gamescreen-elements {
+		position: absolute;
+		width: 800px;
+		height: 533px;
+		display: none;
+	}
+
+	.gametext {
+		font-size: 30px;
+		position: absolute;
+		left: 0;
+		top: 485px;
+	}
+
+	#gametext-temperature {
+		left: 420px;
+	}
+
+	.gametext-score {
+		left: 670px;
+	}
+
+	#clothes-select-container {
+		width: 305px;
+		height: 345px;
+		position: absolute;
+		left: 450px;
+		top: 80px;
+		z-index: 1000;
+	}
+
+	.clothes-select {
+		display: inline-block;
+		width: 150px;
+		height: 170px;
+		vertical-align: top;
+		cursor: pointer;
+	}
+
+	.clothes-select:hover {
+		box-shadow: 0px 0px 1px #000;
+	}
+
+	#clothes-select-1 {
+		margin-bottom: 5px;
+	}	
+
+	.clothes-select-image {
+		width: 150px;
+		height: 150px;
+		background-image: url(clothes_select/bokserit.png);
+	}
+
+	.clothes-select-name {
+		width: 150px;
+		height: 20px;
+		text-align: center;
+		vertical-align: top;
+		font-size: 14px;
+	}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.2.0.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+
+		// Score accumuated thus far, can be saved
+		var score = 0;
+		// Level specific temperature
+		var temperature = 0;
+		// Warmth from clothes
+		var warmth = 0;
+		// Goal warmth, based on temperature
+		var warmthGoal = 0;
+		// What's been equipped already
+		var equipped = [];
+		// What level clothing's been equipped, can't equip multiple of same level
+		var equippedLevels = [];
+		// Index of the first clothing item that's displayed on the right in gamescreen (4 at a time), skip sensuuri
+		var displayIndex = 1;
+		// All the clothes and their stats
+		// Levels:
+		// alushousut	0
+		// kalsarit		1
+		// sukat		2
+		// villasukat	3
+		// kengät		4
+		// aluspaita	5
+		// housut		6
+		// paita		7
+		// villapaita	8
+		// hanskat		9
+		// takki		10
+		// kaulahuivi	11
+		// hattu		12
+		// Can equip only 1 of each level
+		var clothes = [
+			{
+				name: "sensuuri",
+				level: -1,
+				warmth: 0,
+			},
+			{
+				name: "bokserit", // Name/filename
+				level: 0, // Explained above
+				warmth: 1, // How much warmth it gives
+			},
+			{
+				name: "tpaita",
+				level: 5,
+				warmth: 2,
+			},
+			{
+				name: "kalsarit",
+				level: 1,
+				warmth: 3,
+			},
+			{
+				name: "sukat",
+				level: 2,
+				warmth: 0,
+			},
+			{
+				name: "villasukat",
+				level: 3,
+				warmth: 3,
+			},
+			{
+				name: "farkut",
+				level: 6,
+				warmth: 7,
+			},
+			{
+				name: "shortsit",
+				level: 6,
+				warmth: 1,
+			},
+			{
+				name: "paita",
+				level: 7,
+				warmth: 4,
+			},
+			{
+				name: "villapaita",
+				level: 8,
+				warmth: 6,
+			},
+			{
+				name: "kengat",
+				level: 4,
+				warmth: 1,
+			},
+			{
+				name: "sandaalit",
+				level: 4,
+				warmth: 0,
+			},
+			{
+				name: "takki",
+				level: 10,
+				warmth: 9,
+			},
+			{
+				name: "toppatakki",
+				level: 10,
+				warmth: 14,
+			},
+			{
+				name: "hanskat",
+				level: 9,
+				warmth: 2,
+			},			
+			{
+				name: "kaulahuivi",
+				level: 11,
+				warmth: 6,
+			},			
+			{
+				name: "lippis",
+				level: 12,
+				warmth: 0,
+			},			
+			{
+				name: "pipo",
+				level: 12,
+				warmth: 5,
+			}			
+		];
+
+		// Sounds
+		var soundMenu = new Audio("audio/menu.mp3");
+		var soundGame = new Audio("audio/game.mp3");
+		var soundCantEquip = new Audio("audio/hmm.mp3");
+		var soundWin = new Audio("audio/win.mp3");
+		var soundLoseCold = new Audio("audio/lose_cold.mp3");
+		var soundLoseHot = new Audio("audio/lose_hot.mp3");
+		var soundTickle = new Audio("audio/tickle.mp3");
+
+		// Go to title screen at beginning
+		titleScreen();
+
+		// Buttons click
+		$("#button-startgame").click(function() {
+			gameScreen();
+		});
+
+		$("#button-moreclothes").click(function() {
+			loadClothes();
+		});
+
+		$(".clothes-select").click(function() {
+			// Get the number and name of the select element
+			var num = $(this).find(".clothes-select-name").attr("id").split("-")[2];
+			var name = $(this).find(".clothes-select-name").text();
+			// Equip the clothing item that was clicked
+			addClothes(name, num);
+		});
+
+		$("#button-ready").click(function() {
+			// Win if warmth within goal +-10
+			if (warmth > warmthGoal - 10 && warmth < warmthGoal + 10){
+				winScreen();
+			} else {
+				loseScreen();
+			}
+			// Clean up clothing elements
+			$("div[id^='equipped']").remove();
+		});
+
+		$("#button-newlevel").click(function(){
+			gameScreen();
+		});
+
+		$("#button-menu").click(function() {
+			titleScreen();
+		});
+
+		$("#button-instructions").click(function() {
+			// Show instructions
+			$("#instructions").css("display", "block");
+		});
+
+		$("#instructions").click(function() {
+			// Hide instructions when clicked anywhere on element
+			$("#instructions").css("display", "none");
+		});
+
+		// If don't want to wait, can click out of info
+		$("#winscreen-elements-info").click(function() {
+			infoToMenu();
+		});
+
+		$("#button-load").click(function() {
+			postMessage("LOAD_REQUEST");
+		});
+
+		$("#button-save").click(function() {
+			postMessage("SAVE");
+		});
+
+		// Show translations as subtitles when hovering on buttons
+		//                           Action on hover                       Action when mouse leaves
+		$("#button-startgame").hover(function() {subtitles("Start game")}, function() {hideSubtitles();});
+		$("#button-load").hover(function() {subtitles("Load a saved game")}, function() {hideSubtitles();});
+		$("#button-instructions").hover(function() {subtitles("Instructions")}, function() {hideSubtitles();});
+		$("#button-moreclothes").hover(function() {subtitles("Show more clothes")}, function() {hideSubtitles();});
+		$("#button-ready").hover(function() {subtitles("Ready")}, function() {hideSubtitles();});
+		$("#button-newlevel").hover(function() {subtitles("Start a new level")}, function() {hideSubtitles();});
+		$("#button-save").hover(function() {subtitles("Save game")}, function() {hideSubtitles();});
+		$("#button-menu").hover(function() {subtitles("Return to menu")}, function() {hideSubtitles();});
+
+		// Switch to title screen
+		function titleScreen() {
+			// Post resolution setting to parent
+			postMessage("SETTING");
+
+			switchScreen("titlescreen");
+			$("#titlescreen-elements").css("display", "block");
+			score = 0;
+			soundMenu.play();
+		}
+
+		// Switch to game screen when starting a new level
+		function gameScreen() {
+			switchScreen("gamescreen");
+			// Make gamescreen elements visible
+			$("#gamescreen-elements").css("display", "block");
+			// Get new temp for the level
+			temperature = randTemp();
+			// Reset all equipped clothes, displayIndex and warmth
+			equipped = [];
+			equippedLevels = [];
+			displayIndex = 1;
+			warmth = 0;
+			// Censor strategic parts on naked Sakari
+			addClothes("sensuuri");
+			// Update temp and score display
+			$("#gametext-temperature").text(temperature.toString() + "C");
+			$(".gametext-score").text(score.toString());
+			// Display first 4 clothing items
+			loadClothes();
+
+			// Play sound and show subtitle
+			soundGame.play();
+			subtitles2("Put clothes on Sakari.");
+		}
+
+		// Load 4 clothing items on screen based on current displayIndex and increment it
+		function loadClothes() {
+			// If less than 4 left, show last 4
+			if (displayIndex + 3 >= clothes.length) {
+				displayIndex = clothes.length - 4;
+			}
+
+			// Load next 4 clothing items on screen
+			$("#clothes-select-1-image").css("background-image", "url(clothes_select/" + clothes[displayIndex].name + ".png)");
+			$("#clothes-select-1-name").text(clothes[displayIndex].name);
+			// If it's already equipped, make transparent
+			if (equipped.indexOf(clothes[displayIndex].name) != -1) {
+				$("#clothes-select-1-image").css("opacity", "0.3");
+			} else { $("#clothes-select-1-image").css("opacity", "1"); }
+
+			$("#clothes-select-2-image").css("background-image", "url(clothes_select/" + clothes[displayIndex + 1].name + ".png)");
+			$("#clothes-select-2-name").text(clothes[displayIndex + 1].name);
+			// If it's already equipped, make transparent
+			if (equipped.indexOf(clothes[displayIndex + 1].name) != -1) {
+				$("#clothes-select-2-image").css("opacity", "0.3");
+			} else { $("#clothes-select-2-image").css("opacity", "1"); }
+
+			$("#clothes-select-3-image").css("background-image", "url(clothes_select/" + clothes[displayIndex + 2].name + ".png)");
+			$("#clothes-select-3-name").text(clothes[displayIndex + 2].name);
+			// If it's already equipped, make transparent
+			if (equipped.indexOf(clothes[displayIndex + 2].name) != -1) {
+				$("#clothes-select-3-image").css("opacity", "0.3");
+			} else { $("#clothes-select-3-image").css("opacity", "1"); }
+
+			$("#clothes-select-4-image").css("background-image", "url(clothes_select/" + clothes[displayIndex + 3].name + ".png)");
+			$("#clothes-select-4-name").text(clothes[displayIndex + 3].name);
+			// If it's already equipped, make transparent
+			if (equipped.indexOf(clothes[displayIndex + 3].name) != -1) {
+				$("#clothes-select-4-image").css("opacity", "0.3");
+			} else { $("#clothes-select-4-image").css("opacity", "1"); }
+			
+			// Increment displayIndex
+			displayIndex += 4;
+			// If at end, go to beginning
+			if (displayIndex >= clothes.length) {
+				displayIndex = 1;
+			}
+		}
+
+		// Put specific clothes on Sakari, num = number of the selection element on screen (1-4)
+		function addClothes(name, num) {
+			// Only equip it, if not already and not another of same level equipped
+			if (equipped.indexOf(name) === -1 && equippedLevels.indexOf(clothes[clothes.findIndex(x => x.name == name)].level) === -1){
+				// Create new element and give it required style
+				$("#gamescreen-elements").append('<div id="equipped-' + name + '"></div>');
+				$("#equipped-" + name + "").css("position", "absolute");
+				$("#equipped-" + name + "").css("top", "0px");
+				$("#equipped-" + name + "").css("left", "0px");
+				$("#equipped-" + name + "").css("width", "800px");
+				$("#equipped-" + name + "").css("height", "533px");
+				$("#equipped-" + name + "").css("background-image", "url(clothes_game/" + name + ".png)");
+				// findIndex doesn't work on IE (ES6)
+				level = clothes[clothes.findIndex(x => x.name == name)].level;
+				// Level of the clothing item affects it's z-index
+				$("#equipped-" + name + "").css("z-index", (10 + level).toString());
+				// If pants, remove censoring
+				if (name === "bokserit" || name === "farkut" || name === "kalsarit" || name === "shortsit"){
+					$("#equipped-sensuuri").css("display", "none");
+				}
+				// Add to equipped
+				equipped.push(name);
+				equippedLevels.push(clothes[clothes.findIndex(x => x.name == name)].level);
+				// Increase warmth, findIndex doesn't work on IE (ES6)
+				warmth += clothes[clothes.findIndex(x => x.name == name)].warmth;
+				console.log("goal:", warmthGoal, "warmth:", warmth);
+				// Make the icon transparent
+				$("#clothes-select-" + num + "-image").css("opacity", "0.3");
+				// If villapaita, "hi hi hi kutittaa"
+				if (name === "villapaita") {
+					soundTickle.play();
+					subtitles2("*giggles* It tickles!");
+				}
+			} else {
+				soundCantEquip.play();
+				subtitles2("Can't do that!");
+			}
+		}
+
+		function winScreen() {
+			// Check score modifiers and determine final score
+			// 100 - deviation from warmth goal
+			var levelScore = 100 - (Math.abs(warmthGoal - warmth));
+
+			var negModifiers = [];
+			if (equipped.indexOf("sukat") != -1 && equipped.indexOf("sandaalit") != -1
+				|| equipped.indexOf("villasukat") != -1 && equipped.indexOf("sandaalit") != -1 ) {
+				negModifiers.push("Socks in sandals");
+			}
+			if (equipped.indexOf("bokserit") === -1) {
+				negModifiers.push("Commando! That's dirty");
+			}
+			if (equipped.indexOf("tpaita") === -1 && equipped.indexOf("paita") === -1
+				&& equipped.indexOf("villapaita") === -1 && equipped.indexOf("takki") === -1
+				&&equipped.indexOf("toppatakki") === -1) {
+				negModifiers.push("No shirt, some decency pls");
+			}
+			if (equipped.indexOf("kengat") === -1 && equipped.indexOf("sandaalit") === -1) {
+				negModifiers.push("No shoes");
+			}
+			// Only cencoring "equipped"
+			if (equipped.length === 1) {
+				negModifiers.push("I know it's hot but please...");
+			}
+			if (equipped.indexOf("bokserit") === -1 && equipped.indexOf("kalsarit") === -1
+				&& equipped.indexOf("farkut") === -1 && equipped.indexOf("shortsit") === -1) {
+				negModifiers.push("Put some pants on!");
+			}
+
+			var posModifiers = [];
+			if (equipped.indexOf("lippis") != -1) {
+				posModifiers.push("Very cool cap");
+			}
+			if (equipped.indexOf("villapaita") != -1) {
+				posModifiers.push("Hi hi tickles!");
+			}
+
+			// Add score
+			var total = levelScore + posModifiers.length * 10 - negModifiers.length * 10;
+			score += total;
+			
+			// Show score info on screen
+			$("#winscreen-elements-info").append("Level score: <strong>" + levelScore.toString() + "</strong><br>");
+			for ( i = 0; i < negModifiers.length; ++i ) {
+				$("#winscreen-elements-info").append(negModifiers[i] + " <strong>-10</strong><br>");
+			}
+			for ( i = 0; i < posModifiers.length; ++i ) {
+				$("#winscreen-elements-info").append(posModifiers[i] + " <strong>+10</strong><br>");
+			}
+			$("#winscreen-elements-info").append("<strong>TOTAL: " + total + "</strong>");
+
+			// Show info, hide menu
+			$("#winscreen-elements-info").css("display", "block");
+			$("#winscreen-elements-menu").css("display", "none");
+
+			switchScreen("winscreen");
+			$(".gametext-score").text(score.toString());
+			$("#winscreen-elements").css("display", "block");
+			
+			soundWin.play();
+			subtitles2("You won the level!");
+			
+			// Wait 15 seconds and switch to menu
+			setTimeout(function() {infoToMenu()}, 15000);
+		}
+
+		// Switch win screen info display to menu and clean info
+		function infoToMenu() {
+			$("#winscreen-elements-info").css("display", "none");
+			$("#winscreen-elements-menu").css("display", "block");
+			$("#winscreen-elements-info").text("");
+		}
+
+		function loseScreen() {
+			switchScreen("losescreen");
+			$("#losescreen-elements").css("display", "block");
+
+			// Play lose cold or hot depending on warmth
+			if (warmth > warmthGoal) {
+				soundLoseHot.play();
+
+				subtitles2("Too hot!");
+			} else {
+				soundLoseCold.play();
+
+				subtitles2("Too cold!");
+			}
+
+			// Post score to the service
+			postMessage("SCORE");
+		}
+
+		// When swhitching to another screen
+		function switchScreen(screen) {
+			// Hide all screen-specific elements when switching screens
+			$("div[id$='screen-elements']").css("display", "none");
+
+			// Set the correct background
+			$("#gamecontainer").css("background-image", 'url("' + screen + '.png")');
+
+			// Hide subtitles2 in case they're still visible
+			hideSubtitles2();
+		}
+
+		// Display subtitles
+		function subtitles(text) {
+			$("#subtitles").text(text);
+			$("#subtitles").css("display", "block");
+		}
+
+		// Hide subtitles
+		function hideSubtitles() {
+			$("#subtitles").css("display", "none");
+			$("#subtitles").text("");
+		}
+
+		// Display sound subtitles
+		function subtitles2(text) {
+			$("#subtitles2").text(text);
+			$("#subtitles2").css("display", "block");
+
+			// Hide after 1.5 seconds
+			setTimeout(hideSubtitles2, 1500);
+		}
+
+		// Hide sound subtitles
+		function hideSubtitles2() {
+			$("#subtitles2").css("display", "none");
+			$("#subtitles2").text("");
+		}
+
+		// Generate a random temperature for a level
+		function randTemp() {
+			rand = Math.floor((Math.random() * 61) + 1);
+			warmthGoal = 61 - rand;
+			// Random int between -30 and 30
+			return rand - 31;
+		}
+
+
+		// Messaging with the service
+
+		// Post a message to parent window
+		function postMessage(messageType) {
+			console.log("post:", messageType);
+			// If SAVE, send game state as well
+			if (messageType === "SAVE") {
+				var msg = {
+					"messageType": messageType,
+					"gameState": {
+						"score": score.toString()
+					}
+				};
+			}
+
+			// If SCORE, send score as well
+			if (messageType === "SCORE"){
+				var msg = {
+					"messageType": messageType,
+					"score": score.toString()
+				};
+			}
+
+			// If SETTING, send resolution
+			if (messageType === "SETTING"){
+				var msg = {
+					"messageType": messageType,
+					"options": {
+						"width": 800,
+						"height": 533
+					}
+				};
+			}
+
+			// Otherwise just send type
+			else {
+				var msg = {
+					"messageType": messageType,
+				};
+			}
+
+			// Post the message
+			window.parent.postMessage(msg, "*");
+		}
+
+		// Listen for incoming messages
+		window.addEventListener("message", function(evt) {
+			// If LOAD, update the score
+			if(evt.data.messageType === "LOAD") {
+				score = parseInt(evt.data.gameState.score);
+
+				subtitles2("Game state loaded successfully.");
+			}
+
+			// If ERROR, display the error message
+			else if (evt.data.messageType === "ERROR") {
+				alert(evt.data.info);
+
+				subtitles2("Error");
+			}
+		});
+	});
+</script>
+<meta charset="UTF-8">
+<title>Sakarin Villapaitapeli 2</title>
+</head>
+<body>
+<div id="gamecontainer">
+	<div id="titlescreen-elements">
+		<div class="unselectable menubutton" id="button-startgame">Aloita peli</div>
+		<div class="unselectable menubutton" id="button-load">Lataa tallennus</div>
+		<div class="unselectable menubutton" id="button-instructions">Ohjeet</div>
+	</div>
+	<div id="gamescreen-elements">
+		<div class="unselectable gametext" id="gametext-temperature"></div>
+		<div class="unselectable gametext gametext-score"></div>
+		<div id="clothes-select-container">
+			<div class="clothes-select" id="clothes-select-1">
+				<div class="clothes-select-image" id="clothes-select-1-image"></div>
+				<div class="unselectable clothes-select-name" id="clothes-select-1-name"></div>
+			</div>
+			<div class="clothes-select" id="clothes-select-2">
+				<div class="clothes-select-image" id="clothes-select-2-image"></div>
+				<div class="clothes-select-name" id="clothes-select-2-name"></div>
+			</div>
+			<div class="clothes-select" id="clothes-select-3">
+				<div class="clothes-select-image" id="clothes-select-3-image"></div>
+				<div class="unselectable clothes-select-name" id="clothes-select-3-name"></div>
+			</div>
+			<div class="clothes-select" id="clothes-select-4">
+				<div class="clothes-select-image" id="clothes-select-4-image"></div>
+				<div class="unselectable clothes-select-name" id="clothes-select-4-name"></div>
+			</div>
+		</div>
+		<div class="unselectable gamebutton" id="button-moreclothes">Näytä lisää</div>
+		<div class="unselectable gamebutton" id="button-ready">Valmis</div>
+	</div>
+	<div id="winscreen-elements">
+		<div id="winscreen-elements-menu">
+			<div class="unselectable menubutton" id="button-newlevel">Uusi taso</div>
+			<div class="unselectable menubutton" id="button-save">Tallenna peli</div>
+		</div>
+		<div id="winscreen-elements-info" class="unselectable"></div>
+		<div class="unselectable gametext gametext-score"></div>
+	</div>
+	<div id="losescreen-elements">
+		<div class="unselectable menubutton" id="button-menu">Palaa valikkoon</div>
+	</div>
+	<div class="unselectable" id="subtitles"></div>
+	<div class="unselectable" id="subtitles2"></div>
+	<div id="instructions" class="unselectable">
+		<h1>SAKARIN VILLAPAITAPELI 2</h1>
+		<h2>instructions</h2>
+		<p>The goal of the game is to put appropriate clohting on Sakari based on the temperature outside in each level. The better you match the clothing for the temperature, the more points you will get. There's an endless amount of levels each with a random temperature, but once you fail to put the right amount of clothing on Sakari in a level, it's game over. You can't take off clothes you've already put on Sakari in a level, so be careful!</p>
+		<p>You can save your score between levels. Once you lose, your score is automatically sent to the scoreboard.</p>
+		<P>Click anywhere to close this dialog.</P>
+	</div>
+</div>
+</body>
+</html>
