@@ -680,7 +680,7 @@
 			}
 
 			// If SCORE, send score as well
-			if (messageType === "SCORE"){
+			else if (messageType === "SCORE"){
 				var msg = {
 					"messageType": messageType,
 					"score": score.toString()
@@ -688,7 +688,7 @@
 			}
 
 			// If SETTING, send resolution
-			if (messageType === "SETTING"){
+			else if (messageType === "SETTING"){
 				var msg = {
 					"messageType": messageType,
 					"options": {
